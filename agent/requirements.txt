@@ -11,3 +11,5 @@ gspread>=6.1.0
 google-api-python-client>=2.124.0
 google-auth-oauthlib>=1.2.0
 jira>=3.8.0
+playwright>=1.42.0
+requests>=2.31.0

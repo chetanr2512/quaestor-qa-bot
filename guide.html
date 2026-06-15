@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QA Automation Agent - Architecture Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 900: '#134e4a' },
+                        dark: { 800: '#1e293b', 900: '#0f172a' }
+                    }
+                }
+            }
+        }
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'dark',
+            fontFamily: 'system-ui, -apple-system, sans-serif'
+        });
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        code { font-family: 'JetBrains Mono', monospace; }
+        .mermaid { display: flex; justify-content: center; margin: 1.5rem 0; padding: 1.5rem; background: #1e293b; border-radius: 0.75rem; border: 1px solid #334155; }
+        .content-prose h2 { font-size: 1.5rem; font-weight: 700; margin-top: 2rem; margin-bottom: 1rem; color: #5eead4; }
+        .content-prose h3 { font-size: 1.125rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #ccfbf1; }
+        .content-prose p { margin-bottom: 1rem; line-height: 1.7; color: #cbd5e1; }
+        .content-prose ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; color: #cbd5e1; }
+        .content-prose li { margin-bottom: 0.5rem; }
+        .code-block { background: #020617; padding: 1rem; border-radius: 0.5rem; border: 1px solid #334155; overflow-x: auto; margin-bottom: 1rem; }
+    </style>
+</head>
+<body class="min-h-screen selection:bg-brand-500 selection:text-white">
+    
+    <div x-data="{ activeTab: 'overview' }" class="max-w-6xl mx-auto px-4 py-12 flex gap-8">
+        
+        <!-- Navigation Sidebar -->
+        <aside class="w-64 shrink-0">
+            <div class="sticky top-12">
+                <div class="flex items-center gap-3 mb-8">
+                    <div class="w-10 h-10 rounded-lg bg-brand-500 flex items-center justify-center font-bold text-white shadow-lg shadow-brand-500/20">QA</div>
+                    <h1 class="font-bold text-xl tracking-tight">Agent<br/><span class="text-brand-500">Architecture</span></h1>
+                </div>
+                
+                <nav class="flex flex-col space-y-2">
+                    <button @click="activeTab = 'overview'" :class="activeTab === 'overview' ? 'bg-dark-800 text-brand-500 border-l-2 border-brand-500' : 'text-slate-400 hover:bg-dark-800/50 hover:text-slate-200 border-l-2 border-transparent'" class="text-left px-4 py-2.5 rounded-r-md transition-all font-medium text-sm">
+                        1. System Overview
+                    </button>
+                    <button @click="activeTab = 'pipeline'" :class="activeTab === 'pipeline' ? 'bg-dark-800 text-brand-500 border-l-2 border-brand-500' : 'text-slate-400 hover:bg-dark-800/50 hover:text-slate-200 border-l-2 border-transparent'" class="text-left px-4 py-2.5 rounded-r-md transition-all font-medium text-sm">
+                        2. Pipeline Initialization
+                    </button>
+                    <button @click="activeTab = 'browser'" :class="activeTab === 'browser' ? 'bg-dark-800 text-brand-500 border-l-2 border-brand-500' : 'text-slate-400 hover:bg-dark-800/50 hover:text-slate-200 border-l-2 border-transparent'" class="text-left px-4 py-2.5 rounded-r-md transition-all font-medium text-sm">
+                        3. The Browser-Use Engine
+                    </button>
+                    <button @click="activeTab = 'integrations'" :class="activeTab === 'integrations' ? 'bg-dark-800 text-brand-500 border-l-2 border-brand-500' : 'text-slate-400 hover:bg-dark-800/50 hover:text-slate-200 border-l-2 border-transparent'" class="text-left px-4 py-2.5 rounded-r-md transition-all font-medium text-sm">
+                        4. Integrations & Output
+                    </button>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 bg-dark-800 border border-slate-700 rounded-2xl shadow-xl overflow-hidden min-h-[800px]">
+            
+            <!-- Tab 1: System Overview -->
+            <div x-show="activeTab === 'overview'" x-transition.opacity.duration.300ms class="p-10 content-prose">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 text-brand-500 text-xs font-semibold uppercase tracking-wider mb-2">High Level</div>
+                <h2 class="!mt-0 text-3xl">System Architecture Overview</h2>
+                <p>The Autonomous QA Agent is an end-to-end testing pipeline. It ingests human-readable requirements, uses Claude 3.5 Sonnet to autonomously generate test plans, executes them directly against a live web browser, and reports the findings to a dashboard and Jira.</p>
+                
+                <div class="mermaid">
+                    graph TD
+                        A[Source: Jira / Google Sheets] -->|Raw Tickets| B(Test Generator)
+                        B -->|Claude structured output| C[Test Cases]
+                        C --> D{Test Executor}
+                        D -->|Frontend| E[BrowserRunner]
+                        D -->|Backend| F[APIRunner]
+                        E <-->|DOM extraction / LLM Vision| G[Live Web App]
+                        F <-->|HTTP Requests| G
+                        E --> H[Test Results]
+                        F --> H
+                        H --> I[(Supabase DB)]
+                        H --> J[Reporter]
+                        J --> K[Jira Comments]
+                        J --> L[Google Sheets]
+                        I --> M[Next.js Realtime Dashboard]
+                </div>
+                
+                <h3>Core Philosophy</h3>
+                <p>Rather than writing brittle, hardcoded Cypress or Selenium scripts, this architecture treats the application exactly how a human QA engineer would. It relies on <strong>Visual DOM Understanding</strong> and <strong>Goal-Oriented Action Execution</strong>.</p>
+            </div>
+
+            <!-- Tab 2: Pipeline Initialization -->
+            <div x-show="activeTab === 'pipeline'" x-transition.opacity.duration.300ms style="display: none;" class="p-10 content-prose">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-2">Code Level</div>
+                <h2 class="!mt-0 text-3xl text-indigo-400">Pipeline Initialization</h2>
+                <p>The entire pipeline kicks off in <code>agent/main.py</code>. This file acts as the orchestrator for the modular components.</p>
+                
+                <h3>1. Argument Parsing & Ingestion</h3>
+                <p>The CLI accepts arguments defining the source of truth (e.g., Jira or Sheets) and fetches the raw text descriptions of what needs to be tested.</p>
+                <div class="code-block text-sm text-indigo-300">
+<pre><code>if args.source == "jira":
+    client = JiraClient()
+    tickets = client.fetch_tickets(jql=args.source_id)
+elif args.source == "sheets":
+    client = SheetsClient()
+    tickets = client.fetch_tickets(sheet_id=args.source_id)</code></pre>
+                </div>
+
+                <h3>2. AI Test Generation</h3>
+                <p>The raw tickets are passed to the <code>TestGenerator</code>. This utilizes LangChain to send a prompt to Claude, asking it to break down the ticket into logical <code>TestCase</code> Pydantic models containing specific steps and assertions.</p>
+                <div class="code-block text-sm text-emerald-300">
+<pre><code>class TestCase(BaseModel):
+    id: str
+    name: str
+    type: Literal["frontend", "backend"]
+    steps: List[str]
+    assertions: List[str]</code></pre>
+                </div>
+
+                <h3>3. Database Registration</h3>
+                <p>Before execution begins, the pipeline registers a <code>TestRun</code> in Supabase to track total tests, duration, and cost. This allows the Next.js dashboard to instantly show a "Running" status.</p>
+            </div>
+
+            <!-- Tab 3: The Browser-Use Engine -->
+            <div x-show="activeTab === 'browser'" x-transition.opacity.duration.300ms style="display: none;" class="p-10 content-prose">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 text-rose-400 text-xs font-semibold uppercase tracking-wider mb-2">The Magic</div>
+                <h2 class="!mt-0 text-3xl text-rose-400">The Browser-Use Engine</h2>
+                <p>The heart of the system is the <code>BrowserRunner</code> class, which implements the <code>browser-use</code> open-source library to bridge the gap between LLMs and physical browsers.</p>
+                
+                <div class="mermaid">
+                    sequenceDiagram
+                        participant B as BrowserRunner
+                        participant BU as Browser-Use Agent
+                        participant P as Playwright (Chromium)
+                        participant C as Claude LLM
+                        
+                        B->>BU: execute(task_prompt)
+                        loop Autonomous Loop
+                            BU->>P: Inject JS to extract DOM
+                            P-->>BU: Returns Indexed Interactive Elements
+                            BU->>C: Send Prompt + DOM State
+                            C-->>BU: Returns JSON Action (e.g., click index 14)
+                            BU->>P: Execute native click on element
+                            P-->>BU: Await network idle
+                        end
+                        BU-->>B: Return AgentHistoryList (success/fail)
+                </div>
+
+                <h3>How it Works Under the Hood</h3>
+                <ul>
+                    <li><strong>DOM Tagging:</strong> The engine cannot simply "click the login button" because LLMs don't have spatial mouse coordinates. Instead, the engine scans the HTML using Playwright and injects a temporary visual overlay, assigning a unique ID to every interactive element (e.g. <code>[14] &lt;button&gt;Login&lt;/button&gt;</code>).</li>
+                    <li><strong>Prompting the Model:</strong> Claude receives a text representation of the screen: "There is a button with ID 14 that says Login".</li>
+                    <li><strong>JSON Action Execution:</strong> Claude returns a structured tool call like <code>{"action": "click", "index": 14}</code>. The engine maps index 14 to its exact X/Y coordinate or XPath in Playwright and executes the physical click.</li>
+                </ul>
+
+                <h3>Execution Isolation</h3>
+                <p>To prevent browser crashes across multiple tests, the <code>BrowserRunner</code> instantiates a completely fresh Chromium window per test case, closing it in the <code>finally</code> block to ensure a clean state and zero cache pollution.</p>
+            </div>
+
+            <!-- Tab 4: Integrations & Output -->
+            <div x-show="activeTab === 'integrations'" x-transition.opacity.duration.300ms style="display: none;" class="p-10 content-prose">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 text-xs font-semibold uppercase tracking-wider mb-2">Ecosystem</div>
+                <h2 class="!mt-0 text-3xl text-amber-400">Integrations & Output</h2>
+                
+                <h3>1. Supabase & The Next.js Dashboard</h3>
+                <p>All test results are streamed into a PostgreSQL database managed by Supabase. The Next.js dashboard uses Supabase Realtime (WebSockets via <code>supabase.channel('postgres_changes')</code>) to instantly update the UI without needing to refresh the page.</p>
+                <div class="code-block text-sm text-amber-200">
+<pre><code>// Dashboard Realtime Subscription
+supabase.channel('test_runs_changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'test_runs' }, fetchRuns)
+  .subscribe();</code></pre>
+                </div>
+
+                <h3>2. Jira API Reporter</h3>
+                <p>If the pipeline was triggered via a Jira JQL string, the <code>Reporter</code> class aggregates the pass/fail arrays. It maps each test case back to its parent <code>Ticket ID</code> and utilizes the Atlassian Document Format (ADF) API to automatically post a structured comment to the Jira Agile board.</p>
+
+                <h3>3. Google OAuth 2.0</h3>
+                <p>For Google Sheets, the pipeline utilizes the <code>InstalledAppFlow.from_client_config</code> methodology. Instead of unsecure service accounts, it dynamically spins up an HTTP server on <code>localhost:8080</code> to catch OAuth callbacks, securely generating and caching a <code>token_sheets.json</code> file locally.</p>
+            </div>
+
+        </main>
+    </div>
+
+</body>
+</html>
