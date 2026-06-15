@@ -1,0 +1,71 @@
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*
+.dev.vars
+
+# Python / Agent
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.manifest.json
+output/
+screenshots/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Python Virtual Environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Playwright / Browser-Use Logs
+playwright-report/
+test-results/
+agent.log
+
+# Google OAuth Credentials & Tokens
+credentials.json
+token_sheets.json
+token_docs.json
+
+# Node.js / Dashboard / Worker
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm/
+
+# Next.js
+.next/
+out/
+build/
+
+# Wrangler / Cloudflare
+.wrangler/
+
+# IDE / OS
+.DS_Store
+.vscode/
+.idea/
+Thumbs.db
