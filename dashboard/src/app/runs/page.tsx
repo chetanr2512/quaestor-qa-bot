@@ -175,7 +175,7 @@ export default function TestRunsPage() {
                         <div className="flex items-center gap-1.5 text-pass"><CheckCircle2 className="w-4 h-4"/> <span>Passed: {run.passed}</span></div>
                         <div className="flex items-center gap-1.5 text-fail"><XCircle className="w-4 h-4"/> <span>Failed: {run.failed}</span></div>
                         <div className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-muted-foreground"/> <span>{run.duration_seconds?.toFixed(1)}s</span></div>
-                        <div className="flex items-center gap-1 text-green-600"><DollarSign className="w-4 h-4"/> <span className="font-medium">${(run.api_cost_usd || 0).toFixed(4)}</span></div>
+                        <div className="flex items-center gap-1 text-green-600"><DollarSign className="w-4 h-4"/> <span className="font-medium">{(run.api_cost_usd || 0).toFixed(4)}</span></div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">

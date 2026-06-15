@@ -10,7 +10,7 @@ from .core import TicketIngester, TestCaseGenerator, TestClassifier, TestExecuto
 from .models import Ticket
 
 
-async def run_pipeline(source: str, source_id: str, sheets_id: str = None, csv_out: str = None, project_key: str = "QA", re_run: bool = False, crit: bool = False, high: bool = False, med: bool = False, low: bool = False, headless: bool = False):
+async def run_pipeline(source: str, source_id: str, sheets_id: str = None, csv_out: str = None, project_key: str = "QA", re_run: bool = False, crit: bool = False, high: bool = False, med: bool = False, low: bool = False, headless: bool = False, sheet_name: str = None):
     print(f"🚀 Starting QA Automation Agent Pipeline...")
 
     # ------------------------------------------------------------------
@@ -166,7 +166,7 @@ async def run_pipeline(source: str, source_id: str, sheets_id: str = None, csv_o
     if source == 'testplan':
         from .integrations.sheets_client import SheetsClient
         sheets_client = SheetsClient()
-        spreadsheet_text = sheets_client.get_spreadsheet_as_text(source_id)
+        spreadsheet_text = sheets_client.get_spreadsheet_as_text(source_id, sheet_name=sheet_name)
         if not spreadsheet_text:
             print("Error: Could not retrieve spreadsheet text.")
             return
@@ -344,6 +344,7 @@ def main():
         help="(requirements mode) Path to write the generated test suite as a CSV file",
     )
     parser.add_argument("--project-key", type=str, default="QA", help="Jira Project Key for creating bugs (default: QA)")
+    parser.add_argument("--sheet-name", type=str, default=None, help="Specific sheet/tab name to execute tests from (for testplan mode)")
     parser.add_argument("--re-run", action="store_true", help="Force re-execution of test cases regardless of cache")
     parser.add_argument("--crit", action="store_true", help="Run critical severity test cases")
     parser.add_argument("--high", action="store_true", help="Run high severity test cases")
@@ -363,7 +364,7 @@ def main():
         
     asyncio.run(run_pipeline(
         args.source, args.source_id, args.sheets_id, args.csv_out, 
-        args.project_key, args.re_run, args.crit, args.high, args.med, args.low, args.headless
+        args.project_key, args.re_run, args.crit, args.high, args.med, args.low, args.headless, args.sheet_name
     ))
 
 if __name__ == "__main__":

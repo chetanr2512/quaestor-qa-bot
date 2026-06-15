@@ -76,14 +76,14 @@ GOOGLE_CLIENT_SECRET="your-client-secret"
 To allow the frontend dashboard to connect to Supabase and stream real-time websocket updates, create a `.env.local` file inside the `dashboard/` directory:
 ```env
 NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="your-public-anon-key"
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="your-publishable-key"
 ```
 
 #### 3. Cloudflare Worker (`worker/.dev.vars`)
 If you are running the optional API Middle-Tier locally, create a `.dev.vars` file inside the `worker/` directory. This acts as your local secrets vault before pushing to Cloudflare:
 ```env
 SUPABASE_URL="https://your-project.supabase.co"
-SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
+SUPABASE_SECRET_KEY="your-secret-key"
 ```
 
 ### Google OAuth Setup
@@ -137,6 +137,7 @@ python -m agent.main --source requirements --csv-out output/generated_test_suite
 
 **Advanced Command Line Flags:**
 You can chain multiple flags together to deeply customize the agent's execution behavior:
+- `--sheet-name <NAME>`: Restricts execution to a specific tab inside the Google Spreadsheet (e.g. `--sheet-name Hotlist`). Case-insensitive.
 - `--claude`: Forces the engine to use Anthropic's Claude models for the current run, ignoring the `.env` default.
 - `--gemini`: Forces the engine to use Google's Gemini models for the current run, ignoring the `.env` default.
 - `--project-key <KEY>`: Specifies the Jira project to create Bug tickets and subtasks in (default is `QA`).

@@ -2,6 +2,26 @@ from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 from ..config import settings
 
+from pydantic import Field
+
+class BrowserUseAnthropic(ChatAnthropic):
+    @property
+    def provider(self) -> str:
+        return 'anthropic'
+        
+    @property
+    def model_name(self) -> str:
+        return self.model
+
+class BrowserUseGoogle(ChatGoogleGenerativeAI):
+    @property
+    def provider(self) -> str:
+        return 'google'
+        
+    @property
+    def model_name(self) -> str:
+        return self.model
+
 class LLMClient:
     def __init__(self, provider_override: str = None):
         """
@@ -31,13 +51,13 @@ class LLMClient:
                 self.llm = None
                 self.haiku_llm = None
             else:
-                self.llm = ChatAnthropic(
+                self.llm = BrowserUseAnthropic(
                     model="claude-sonnet-4-6",
                     api_key=settings.ANTHROPIC_API_KEY,
                     temperature=0.2,
                     max_tokens=16000
                 )
-                self.haiku_llm = ChatAnthropic(
+                self.haiku_llm = BrowserUseAnthropic(
                     model="claude-3-5-haiku-20241022",
                     api_key=settings.ANTHROPIC_API_KEY,
                     temperature=0.2
@@ -49,12 +69,12 @@ class LLMClient:
                 self.llm = None
                 self.haiku_llm = None
             else:
-                self.llm = ChatGoogleGenerativeAI(
+                self.llm = BrowserUseGoogle(
                     model="gemini-3.5-flash",
                     google_api_key=settings.GOOGLE_API_KEY,
                     temperature=0.2
                 )
-                self.haiku_llm = ChatGoogleGenerativeAI(
+                self.haiku_llm = BrowserUseGoogle(
                     model="gemini-3.5-flash",
                     google_api_key=settings.GOOGLE_API_KEY,
                     temperature=0.2

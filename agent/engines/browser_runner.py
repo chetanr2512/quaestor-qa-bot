@@ -9,6 +9,15 @@ from ..integrations.supabase_client import SupabaseClient
 from ..integrations.llm_client import LLMClient
 from ..config import settings
 
+import logging
+
+# Suppress the buggy browser-use warning about user_data_dir which spams the console
+class BrowserUseWarningFilter(logging.Filter):
+    def filter(self, record):
+        return "was passed both storage_state AND user_data_dir" not in record.getMessage()
+
+logging.getLogger("browser_use.utils").addFilter(BrowserUseWarningFilter())
+
 class BrowserRunner:
     def __init__(self, headless: bool = False):
         self.supabase = SupabaseClient()
@@ -17,6 +26,10 @@ class BrowserRunner:
         
         # Browser-Use specific LLM, routes through our central factory
         self.agent_llm = LLMClient().get_sonnet()
+        
+        auth_file = os.path.abspath("auth.json")
+        if os.path.exists(auth_file):
+            print(f"🔑 Found saved session. Will inject authentication state from {auth_file} into all parallel browsers.")
 
     def _build_task_prompt(self, test_case: TestCase) -> str:
         """Converts structured test case into a prompt for Browser Use"""
@@ -45,13 +58,12 @@ class BrowserRunner:
         
         task_prompt = self._build_task_prompt(test_case)
         
-        from browser_use import BrowserConfig
         auth_file = os.path.abspath("auth.json")
         if os.path.exists(auth_file):
-            print(f"🔑 Found saved session. Injecting authentication state from {auth_file}")
-            browser = Browser(config=BrowserConfig(headless=self.headless, state_path=auth_file))
+            browser = Browser(headless=self.headless, storage_state=auth_file, user_data_dir=None)
         else:
-            browser = Browser(config=BrowserConfig(headless=self.headless))
+            browser = Browser(headless=self.headless, user_data_dir=None)
+
         agent = Agent(
             task=task_prompt,
             llm=self.agent_llm,

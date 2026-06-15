@@ -70,7 +70,7 @@ class SupabaseClient:
 
     def insert_test_result(self, result: TestResult):
         if not self.client: return None
-        return self.client.table('test_results').insert(result.model_dump(mode='json')).execute()
+        return self.client.table('test_results').insert(result.model_dump(mode='json', exclude={'cost'})).execute()
 
     def get_results_for_run(self, run_id: str) -> list[TestResult]:
         if not self.client: return []

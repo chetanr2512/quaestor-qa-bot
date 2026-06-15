@@ -224,8 +224,8 @@ class SheetsClient:
         except Exception as e:
             print(f"Error writing test cases to sheet: {e}")
 
-    def get_spreadsheet_as_text(self, spreadsheet_id: str) -> str:
-        """Fetch all sheets in the spreadsheet and format them as CSV-like text for the LLM."""
+    def get_spreadsheet_as_text(self, spreadsheet_id: str, sheet_name: str = None) -> str:
+        """Fetch sheets in the spreadsheet and format them as CSV-like text for the LLM."""
         out = ""
         # Google Sheets logic
         if not self.client:
@@ -234,7 +234,17 @@ class SheetsClient:
             
         try:
             doc = self.client.open_by_key(spreadsheet_id)
-            for sheet in doc.worksheets():
+            worksheets = doc.worksheets()
+            
+            # If sheet_name is provided, filter the worksheets
+            if sheet_name:
+                filtered_sheets = [s for s in worksheets if s.title.lower() == sheet_name.lower()]
+                if not filtered_sheets:
+                    print(f"Warning: Sheet named '{sheet_name}' not found. Available sheets: {[s.title for s in worksheets]}")
+                    return ""
+                worksheets = filtered_sheets
+
+            for sheet in worksheets:
                 out += f"\n\n--- SHEET: {sheet.title} ---\n"
                 records = sheet.get_all_values()
                 for row in records:
