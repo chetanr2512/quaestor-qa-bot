@@ -11,6 +11,7 @@ class TestResult(BaseModel):
     logs: list[Any] = Field(default_factory=list, description="Execution history/logs from the agent")
     payload: Optional[Dict[str, Any]] = Field(None, description="API request/response payload for backend tests")
     duration_seconds: float = Field(0.0, description="Time taken to execute the test")
+    cost: float = Field(0.0, description="Cost of LLM execution for this specific test case")
     error_message: Optional[str] = Field(None, description="Error message if the test failed or errored")
     executed_at: datetime = Field(default_factory=datetime.utcnow)
 

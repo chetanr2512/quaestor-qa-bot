@@ -23,12 +23,13 @@ class TestExecutor:
         passed = 0
         failed = 0
         total_duration = 0.0
+        total_cost = 0.0
         
         semaphore = asyncio.Semaphore(3) # Max 3 concurrent tests to avoid crashing RAM with browsers
         lock = asyncio.Lock()
 
         async def run_single_test(tc):
-            nonlocal passed, failed, total_duration
+            nonlocal passed, failed, total_duration, total_cost
             async with semaphore:
                 try:
                     # Route to API or Browser runner based on automation_status or type
@@ -54,6 +55,8 @@ class TestExecutor:
                             failed += 1
                             
                         total_duration += result.duration_seconds
+                        if hasattr(result, 'cost'):
+                            total_cost += getattr(result, 'cost', 0.0)
                         
                         # Update run progress in real-time
                         self.supabase.update_test_run(
@@ -61,7 +64,7 @@ class TestExecutor:
                             passed=passed,
                             failed=failed,
                             duration=total_duration,
-                            cost=0.0,
+                            cost=total_cost,
                             status='running'
                         )
                 except Exception as e:
@@ -73,13 +76,13 @@ class TestExecutor:
         await asyncio.gather(*tasks)
                 
         # Finalize run
-        print(f"Test Run Completed. Passed: {passed}, Failed: {failed}")
+        print(f"Test Run Completed. Passed: {passed}, Failed: {failed}, Cost: ${total_cost:.4f}")
         self.supabase.update_test_run(
             run_id=run_id,
             passed=passed,
             failed=failed,
             duration=total_duration,
-            cost=0.0,
+            cost=total_cost,
             status='completed'
         )
         

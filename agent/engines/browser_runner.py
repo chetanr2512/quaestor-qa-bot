@@ -114,6 +114,7 @@ class BrowserRunner:
             status=status,
             logs=logs,
             duration_seconds=round(duration, 2),
+            cost=round(cost, 4),
             error_message=error_msg,
             screenshot_url=screenshot_url
         )
