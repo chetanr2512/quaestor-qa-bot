@@ -24,8 +24,8 @@ class BrowserRunner:
         self.base_url = settings.TARGET_APP_URL
         self.headless = headless
         
-        # Browser-Use specific LLM, routes through our central factory
-        self.agent_llm = LLMClient().get_sonnet()
+        # Native browser-use LLM (generator/classifier use the langchain one via get_sonnet())
+        self.agent_llm = LLMClient().get_browser_llm()
         
         auth_file = os.path.abspath("auth.json")
         if os.path.exists(auth_file):
@@ -58,67 +58,75 @@ class BrowserRunner:
         
         task_prompt = self._build_task_prompt(test_case)
         
+        MAX_ATTEMPTS = 3  # 1 initial run + 2 retries for crashes only
         auth_file = os.path.abspath("auth.json")
-        if os.path.exists(auth_file):
-            browser = Browser(headless=self.headless, storage_state=auth_file, user_data_dir=None)
-        else:
-            browser = Browser(headless=self.headless, user_data_dir=None)
 
-        agent = Agent(
-            task=task_prompt,
-            llm=self.agent_llm,
-            browser=browser,
-            max_failures=1, # Fail fast instead of wasting 1-2 mins retrying bad paths
-            generate_gif=False # GIF generation takes 10-20 seconds post-test, disable for speed
-        )
-        
         status = "error"
         error_msg = None
         logs = []
         screenshot_url = None
         cost = 0.0
-        
-        try:
-            # Run the autonomous loop
-            result = await agent.run()
-            
-            # The result contains history and final status
-            cost = getattr(result, 'total_cost', lambda: 0.0)() if callable(getattr(result, 'total_cost', None)) else 0.0
-            history_logs = [str(action) for action in result.history] if hasattr(result, 'history') else []
-            logs.extend(history_logs)
-            
-            # Fix: AgentHistoryList uses is_successful() instead of success
-            is_success = result.is_successful() if hasattr(result, 'is_successful') else False
-            
-            if is_success:
-                status = "pass"
+
+        for attempt in range(1, MAX_ATTEMPTS + 1):
+            if os.path.exists(auth_file):
+                browser = Browser(headless=self.headless, storage_state=auth_file, user_data_dir=None)
             else:
-                status = "fail"
-                # Extract the reason for failure from the agent's final reasoning
-                if hasattr(result, 'final_result'):
-                    error_msg = result.final_result()
-                elif hasattr(result, 'errors') and result.errors():
-                    error_msg = str(result.errors()[-1])
+                browser = Browser(headless=self.headless, user_data_dir=None)
+
+            agent = Agent(
+                task=task_prompt,
+                llm=self.agent_llm,
+                browser=browser,
+                max_failures=3,
+                generate_gif=False
+            )
+
+            try:
+                result = await agent.run()
+
+                cost = getattr(result, 'total_cost', lambda: 0.0)() if callable(getattr(result, 'total_cost', None)) else 0.0
+                history_logs = [str(action) for action in result.history] if hasattr(result, 'history') else []
+                logs.extend(history_logs)
+
+                is_success = result.is_successful() if hasattr(result, 'is_successful') else None
+
+                if is_success is True:
+                    status = "pass"
+                    break  # genuine pass — do not retry
+                elif is_success is False:
+                    # Agent ran and explicitly judged the assertions as failed
+                    status = "fail"
+                    if hasattr(result, 'final_result') and result.final_result():
+                        error_msg = result.final_result()
+                    elif hasattr(result, 'errors') and result.errors():
+                        error_msg = str(next((e for e in reversed(result.errors()) if e), None))
+                    else:
+                        error_msg = "Agent evaluated the test assertions as FAILED."
+                    break  # genuine fail — do not retry
                 else:
-                    error_msg = "Agent evaluated the test assertions as FAILED."
-                
-            # Capture screenshot on failure
-            if status == "fail":
-                os.makedirs("screenshots", exist_ok=True)
-                file_name = f"fail_{test_case.id}_{int(time.time())}.png"
-                file_path = os.path.join("screenshots", file_name)
-                
-        except Exception as e:
-            error_msg = str(e)
-            logs.append(f"Fatal error: {error_msg}")
-        finally:
-            # Clean up the browser instance
-            await browser.close()
-            
+                    # is_successful() is None: agent never called done (crash, max-failures, max-steps)
+                    status = "error"
+                    if hasattr(result, 'errors') and result.errors():
+                        error_msg = str(next((e for e in reversed(result.errors()) if e), None) or "Agent did not complete the run (no done action).")
+                    else:
+                        error_msg = "Agent did not complete the run (no done action)."
+                    if attempt < MAX_ATTEMPTS:
+                        print(f"  ⚠️  Attempt {attempt}/{MAX_ATTEMPTS} did not complete — retrying...")
+
+            except Exception as e:
+                status = "error"
+                error_msg = str(e)
+                logs.append(f"Fatal error (attempt {attempt}): {error_msg}")
+                if attempt < MAX_ATTEMPTS:
+                    print(f"  ⚠️  Attempt {attempt}/{MAX_ATTEMPTS} raised an exception — retrying...")
+            finally:
+                await browser.close()
+
+            if status in ("pass", "fail"):
+                break
+
         duration = time.time() - start_time
-        
-        # Save cost to run if needed, but we track cost at the run level usually
-        
+
         return TestResult(
             id=str(uuid.uuid4()),
             test_case_id=test_case.id,

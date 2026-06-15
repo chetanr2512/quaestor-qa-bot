@@ -16,14 +16,17 @@ class Reporter:
             
         passed = sum(1 for r in results if r.status == 'pass')
         failed = sum(1 for r in results if r.status == 'fail')
+        errored = sum(1 for r in results if r.status == 'error')
         total = len(results)
-        
+
         print("\n" + "="*40)
         print("📊 TEST RUN SUMMARY")
         print("="*40)
         print(f"Total Tests: {total}")
         print(f"Passed: {passed}")
         print(f"Failed: {failed}")
+        if errored:
+            print(f"Errored (not run): {errored}")
         print("="*40 + "\n")
         
         # Format results for Sheets
@@ -56,23 +59,27 @@ class Reporter:
                     continue
                 ticket = jira_tickets[tc.ticket_id]
                 if ticket.source_id not in ticket_results:
-                    ticket_results[ticket.source_id] = {"passed": 0, "failed": 0, "details": []}
+                    ticket_results[ticket.source_id] = {"passed": 0, "failed": 0, "errored": 0, "details": []}
                     
                 if r.status == 'pass':
                     ticket_results[ticket.source_id]["passed"] += 1
-                else:
+                elif r.status == 'fail':
                     ticket_results[ticket.source_id]["failed"] += 1
-                    
+                else:
+                    ticket_results[ticket.source_id]["errored"] += 1
+
                 ticket_results[ticket.source_id]["details"].append(
-                    f"[{r.status.upper()}] {tc.name}" + (f" - Error: {r.error_message}" if r.status == 'fail' else "")
+                    f"[{r.status.upper()}] {tc.name}" + (f" - {r.error_message}" if r.error_message else "")
                 )
                 
             for jira_key, summary in ticket_results.items():
                 print(f"Posting execution results to Jira ticket {jira_key}...")
+                errored_line = f"⚠️ Errored (not run): {summary['errored']}\n" if summary['errored'] else ""
                 comment = (
                     f"🤖 *AI QA Agent Test Run Completed*\n\n"
                     f"✅ Passed: {summary['passed']}\n"
-                    f"❌ Failed: {summary['failed']}\n\n"
-                    f"*Details:*\n" + "\n".join(summary['details'])
+                    f"❌ Failed: {summary['failed']}\n"
+                    f"{errored_line}"
+                    f"\n*Details:*\n" + "\n".join(summary['details'])
                 )
                 self.jira.post_comment(jira_key, comment)

@@ -417,7 +417,7 @@ class TestCaseGenerator:
     # Test Plan Spreadsheet Extraction
     # ------------------------------------------------------------------
 
-    def generate_from_testplan(self, content: str, source_id: str, re_run: bool = False) -> List[TestCase]:
+    def generate_from_testplan(self, content: str, source_id: str, re_run: bool = False, sheet_name: str = None) -> List[TestCase]:
         print(f"📋 Extracting test cases from test plan sheet: {source_id}")
         
         ticket_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, source_id))
@@ -426,8 +426,16 @@ class TestCaseGenerator:
         if not re_run:
             existing = self.supabase.get_test_cases_by_ticket_id(ticket_uuid)
             if existing and len(existing) > 0:
-                print(f"⚡ Found {len(existing)} cached test cases in Database. Skipping AI extraction.")
-                return existing
+                if sheet_name:
+                    filtered = [tc for tc in existing if tc.rfc_section and tc.rfc_section.strip().lower() == sheet_name.strip().lower()]
+                    if filtered:
+                        print(f"⚡ Found {len(filtered)} cached test cases in Database for sheet '{sheet_name}'. Skipping AI extraction.")
+                        return filtered
+                    else:
+                        print(f"⚠️ No cached test cases found for sheet '{sheet_name}'. Proceeding with AI extraction.")
+                else:
+                    print(f"⚡ Found {len(existing)} cached test cases in Database. Skipping AI extraction.")
+                    return existing
         else:
             print("🔄 Force re-run requested. Regenerating test cases from spreadsheet...")
             # We don't delete from DB here because upsert_ticket handles it or we just add them.

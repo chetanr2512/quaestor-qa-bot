@@ -22,6 +22,7 @@ class TestExecutor:
         results = []
         passed = 0
         failed = 0
+        errored = 0
         total_duration = 0.0
         total_cost = 0.0
         
@@ -29,7 +30,7 @@ class TestExecutor:
         lock = asyncio.Lock()
 
         async def run_single_test(tc):
-            nonlocal passed, failed, total_duration, total_cost
+            nonlocal passed, failed, errored, total_duration, total_cost
             async with semaphore:
                 try:
                     # Route to API or Browser runner based on automation_status or type
@@ -51,8 +52,10 @@ class TestExecutor:
                         
                         if result.status == 'pass':
                             passed += 1
-                        else:
+                        elif result.status == 'fail':
                             failed += 1
+                        else:
+                            errored += 1
                             
                         total_duration += result.duration_seconds
                         if hasattr(result, 'cost'):
@@ -70,13 +73,13 @@ class TestExecutor:
                 except Exception as e:
                     print(f"Critical error executing test {tc.name}: {e}")
                     async with lock:
-                        failed += 1
+                        errored += 1
 
         tasks = [run_single_test(tc) for tc in test_cases]
         await asyncio.gather(*tasks)
                 
         # Finalize run
-        print(f"Test Run Completed. Passed: {passed}, Failed: {failed}, Cost: ${total_cost:.4f}")
+        print(f"Test Run Completed. Passed: {passed}, Failed: {failed}, Errored: {errored}, Cost: ${total_cost:.4f}")
         self.supabase.update_test_run(
             run_id=run_id,
             passed=passed,
