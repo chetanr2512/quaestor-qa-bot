@@ -43,6 +43,10 @@ python -m playwright install
 ```
 
 ### Environment Variables
+
+Because this architecture has three distinct pieces (the Python Agent, the Next.js Dashboard, and the Cloudflare Worker), you need to configure environment variables for each:
+
+#### 1. Python Agent (`agent/.env`)
 Create a `.env` file inside the `agent/` directory and populate it with the following keys:
 
 ```env
@@ -66,6 +70,20 @@ JIRA_API_TOKEN="your-jira-api-token"
 # Google OAuth 2.0 (For Google Sheets / Docs)
 GOOGLE_CLIENT_ID="your-client-id.apps.googleusercontent.com"
 GOOGLE_CLIENT_SECRET="your-client-secret"
+```
+
+#### 2. Next.js Dashboard (`dashboard/.env.local`)
+To allow the frontend dashboard to connect to Supabase and stream real-time websocket updates, create a `.env.local` file inside the `dashboard/` directory:
+```env
+NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your-public-anon-key"
+```
+
+#### 3. Cloudflare Worker (`worker/.dev.vars`)
+If you are running the optional API Middle-Tier locally, create a `.dev.vars` file inside the `worker/` directory. This acts as your local secrets vault before pushing to Cloudflare:
+```env
+SUPABASE_URL="https://your-project.supabase.co"
+SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
 ```
 
 ### Google OAuth Setup
