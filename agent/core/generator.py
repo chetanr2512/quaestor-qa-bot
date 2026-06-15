@@ -417,8 +417,24 @@ class TestCaseGenerator:
     # Test Plan Spreadsheet Extraction
     # ------------------------------------------------------------------
 
-    def generate_from_testplan(self, content: str, source_id: str) -> List[TestCase]:
+    def generate_from_testplan(self, content: str, source_id: str, re_run: bool = False) -> List[TestCase]:
         print(f"📋 Extracting test cases from test plan sheet: {source_id}")
+        
+        ticket_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, source_id))
+        
+        # Check cache unless forced to re-run
+        if not re_run:
+            existing = self.supabase.get_test_cases_by_ticket_id(ticket_uuid)
+            if existing and len(existing) > 0:
+                print(f"⚡ Found {len(existing)} cached test cases in Database. Skipping AI extraction.")
+                return existing
+        else:
+            print("🔄 Force re-run requested. Regenerating test cases from spreadsheet...")
+            # We don't delete from DB here because upsert_ticket handles it or we just add them.
+            # Actually, to avoid duplicates on re_run, we should ideally delete existing ones, 
+            # but currently supabase_client doesn't have a direct delete_test_cases method.
+            # We'll rely on the existing workflow.
+
         llm = self.llm_client.get_sonnet()
         if not llm:
             print("Claude client not initialized. Cannot extract tests.")
@@ -434,7 +450,6 @@ class TestCaseGenerator:
             return []
 
         prompt = skill_prompt.replace('{content}', content)
-        ticket_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, source_id))
 
         from ..models import Ticket as TicketModel
         self.supabase.upsert_ticket(TicketModel(

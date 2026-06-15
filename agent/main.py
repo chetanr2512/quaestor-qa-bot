@@ -172,7 +172,7 @@ async def run_pipeline(source: str, source_id: str, sheets_id: str = None, csv_o
             return
 
         generator = TestCaseGenerator()
-        all_test_cases = generator.generate_from_testplan(spreadsheet_text, source_id)
+        all_test_cases = generator.generate_from_testplan(spreadsheet_text, source_id, re_run=re_run)
         
         if not all_test_cases:
             print("No test cases extracted.")
